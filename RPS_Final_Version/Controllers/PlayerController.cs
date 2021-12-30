@@ -38,6 +38,7 @@ namespace RPS_Final_Version.Controllers
                 ///get the username from each player in the list 
                 ///and return it as a list of strings
                 var output = players.Select(x => x.Username).ToList();
+                
                 return Ok(output);
             }
             catch (Exception ex)
