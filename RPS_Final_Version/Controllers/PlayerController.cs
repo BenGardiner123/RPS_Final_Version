@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RPS_Final_Version.Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -22,18 +23,50 @@ namespace RPS_Final_Version.Controllers
 
         // GET: api/<PlayerController>
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task<IActionResult> Get()
         {
-            return new string[] { "value1", "value2" };
+            try
+            {
+                var output = await _context.Players.ToListAsync();
+                if (output == null)
+                {
+                    return NotFound();
+                }
+                return Ok(output);
+            }
+            catch (Exception ex)
+            {
+               return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+            }
+            
+            
         }
 
         // GET api/<PlayerController>/loady
         [HttpGet("{username}")]
-        public string Get(int id)
+        public async Task<IActionResult> Get(string id)
         {
-            //get a player from the database
             
-            return "value";
+            try
+            {
+                //check if the player exists
+                var player = await _context.Players.FirstOrDefaultAsync(p => p.Username == id);
+                if (player == null)
+                {
+                    return Ok("Player not found");
+                }
+                else
+                {
+                    return Ok(player.Username);  
+                }
+               
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+            }
+           
+            
         }
 
         // POST api/<PlayerController>
