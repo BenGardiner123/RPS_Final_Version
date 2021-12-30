@@ -10,6 +10,9 @@ namespace RPS_Final_Version.Controllers
     [ApiController]
     public class PlayerController : ControllerBase
     {
+
+        ///swagger endpoint because i always forget to add it
+        /// https://localhost:7066/swagger/index.html
         private readonly rock_paper_scissorsContext _context;
         
         public IConfiguration Configuration { get; }
@@ -27,11 +30,14 @@ namespace RPS_Final_Version.Controllers
         {
             try
             {
-                var output = await _context.Players.ToListAsync();
-                if (output == null)
+                var players = await _context.Players.ToListAsync();
+                if (players == null)
                 {
                     return NotFound();
                 }
+                ///get the username from each player in the list 
+                ///and return it as a list of strings
+                var output = players.Select(x => x.Username).ToList();
                 return Ok(output);
             }
             catch (Exception ex)
