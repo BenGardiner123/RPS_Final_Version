@@ -50,13 +50,13 @@ namespace RPS_Final_Version.Controllers
 
         // GET api/<PlayerController>/loady
         [HttpGet("{username}")]
-        public async Task<IActionResult> Get(string id)
+        public async Task<IActionResult> Get(string playerName)
         {
             
             try
             {
                 //check if the player exists
-                var player = await _context.Players.FirstOrDefaultAsync(p => p.Username == id);
+                var player = await _context.Players.FirstOrDefaultAsync(p => p.Username == playerName);
                 if (player == null)
                 {
                     return Ok("Player not found");
@@ -77,20 +77,73 @@ namespace RPS_Final_Version.Controllers
 
         // POST api/<PlayerController>
         [HttpPost]
-        public void Post([FromBody] string value)
+        public async Task<IActionResult> Post([FromBody] string value)
         {
+            try
+            {
+                 //check if player name already exists
+
+                var player = await _context.Players.FirstOrDefaultAsync(p => p.Username == value);
+
+                if (player == null)
+                {
+                    //create a new player
+                    var newPlayer = new Player
+                    {
+                        Username = value
+                    };
+
+                    //add the new player to the database
+                    _context.Players.Add(newPlayer);
+                    _context.SaveChanges();
+                    return Ok("Player created");
+                }
+                else
+                {
+                    //player already exists
+                    return Ok("Player already exists");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+            }
         }
 
-        // PUT api/<PlayerController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
+        // ... im not sure if i need this
+        // // PUT api/<PlayerController>/5
+        // [HttpPut("{id}")]
+        // public void Put(int id, [FromBody] string value)
+        // {
+
+        // }
 
         // DELETE api/<PlayerController>/5
         [HttpDelete("{id}")]
-        public void Delete(int id)
+        public async Task<IActionResult> Delete(string playerName)
         {
+            try
+            {
+                var player = await _context.Players.FirstOrDefaultAsync(p => p.Username == playerName);
+
+                if (player == null)
+                {
+                    return Ok("Player not found");
+                }
+                else
+                {
+                    _context.Players.Remove(player);
+                    _context.SaveChanges();
+                    return Ok("Player deleted");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+            }
+          
         }
     }
 }
