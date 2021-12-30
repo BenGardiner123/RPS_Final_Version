@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using RPS_Final_Version.Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -8,6 +9,17 @@ namespace RPS_Final_Version.Controllers
     [ApiController]
     public class PlayerController : ControllerBase
     {
+        private readonly rock_paper_scissorsContext _context;
+        
+        public IConfiguration Configuration { get; }
+
+        public PlayerController(rock_paper_scissorsContext context, IConfiguration configuration)
+        {
+            _context = context;
+            Configuration = configuration;
+        }
+
+
         // GET: api/<PlayerController>
         [HttpGet]
         public IEnumerable<string> Get()
@@ -19,6 +31,8 @@ namespace RPS_Final_Version.Controllers
         [HttpGet("{username}")]
         public string Get(int id)
         {
+            //get a player from the database
+            
             return "value";
         }
 
