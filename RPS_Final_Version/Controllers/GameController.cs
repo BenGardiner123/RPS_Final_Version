@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using RPS_Final_Version.Models;
+using RPS_Final_Version.Models.ViewModels;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -8,36 +10,65 @@ namespace RPS_Final_Version.Controllers
     [ApiController]
     public class GameController : ControllerBase
     {
-        // GET: api/<GameController>
-        [HttpGet]
-        public IEnumerable<string> Get()
+       ///swagger endpoint because i always forget to add it
+        /// https://localhost:7066/swagger/index.html
+        private readonly rock_paper_scissorsContext _context;
+        
+        public IConfiguration Configuration { get; }
+
+        public GameController(rock_paper_scissorsContext context, IConfiguration configuration)
         {
-            return new string[] { "value1", "value2" };
+            _context = context;
+            Configuration = configuration;
         }
 
-        // GET api/<GameController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+        // POST api/Game/StartGame
+        [HttpPost("StartGame")]
+        public ActionResult<GameCheckResponseModel> Post(GameCheckRequestModel beginGame)
         {
-            return "value";
-        }
+            //make user incoming model is not null
+            if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue || beginGame.roundLimit == 0)
+            {
+                return BadRequest("Please enter a username, datetime, and round limit");
+            }
 
-        // POST api/<GameController>
-        [HttpPost]
-        public void Post([FromBody] string value)
-        {
-        }
+            try
+            {
+                //check if the player exists  //check if the player exists
+                var player = _context.Players.FirstOrDefault(p => p.Username == beginGame.Username);
 
-        // PUT api/<GameController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
+                //create a new game and add it to the database
+                var game = new Game
+                {
+                    Datetimestarted = beginGame.DateTimeStarted,
+                    PlayerOne = beginGame.Username,
+                    PlayerTwo = "The AI Bot",
+                    //create a gamecode using a GUID - this would make an ID if you wanted to come back to the game later on perhaps
+                    Gamecode = Guid.NewGuid().ToString(),   
+                    Roundlimit = beginGame.roundLimit
+                };
 
-        // DELETE api/<GameController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+                //insert the game into the database
+                _context.Games.Add(game);
+                _context.SaveChanges();
+
+                
+                //if save changes succesful then return the gamecheck response model
+                return Ok(new GameCheckResponseModel
+                {
+                    Username = game.PlayerOne,
+                    roundLimit = game.Roundlimit,
+                    DateTimeStarted = game.Datetimestarted,
+                    roundCounter = 1
+                });
+
+                
+
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+            }
         }
     }
 }

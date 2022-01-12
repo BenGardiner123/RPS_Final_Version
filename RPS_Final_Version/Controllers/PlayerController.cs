@@ -49,8 +49,8 @@ namespace RPS_Final_Version.Controllers
             
         }
 
-        // GET api/<PlayerController>/loady
-        [HttpGet("{username}")]
+        // GET api/<PlayerController>/Login
+        [HttpGet("Login/{playerName}")]
         public async Task<IActionResult> Get(string playerName)
         {
             
