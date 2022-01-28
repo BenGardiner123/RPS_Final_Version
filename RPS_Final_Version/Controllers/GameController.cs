@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RPS_Final_Version.Models;
 using RPS_Final_Version.Models.ViewModels;
+using RPS_Final_Version.ultities;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -15,11 +16,14 @@ namespace RPS_Final_Version.Controllers
         private readonly rock_paper_scissorsContext _context;
         
         public IConfiguration Configuration { get; }
+        //create a new instance of the AI selection class
+        AiSelection aiSelection = new AiSelection();
 
         public GameController(rock_paper_scissorsContext context, IConfiguration configuration)
         {
             _context = context;
             Configuration = configuration;
+
         }
 
         // POST api/Game/StartGame
@@ -70,5 +74,54 @@ namespace RPS_Final_Version.Controllers
                 return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
             }
         }
+
+        [HttpPost("postSelection")]
+        public ActionResult<GameCheckResponseModel> PostSelection(GameSelectionModel beginGame)
+        {
+            //make user incoming model is not null
+            if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue || beginGame.roundLimit == 0 || beginGame.PlayerChoice == null)
+            {
+                return BadRequest("Please enter a username, datetime, and round limit");
+            }
+           
+            try
+            {
+                //check if the player and DateTimeStarted exists
+                var player = _context.Players.FirstOrDefault(p => p.Username == beginGame.Username);
+                if (player == null)
+                {
+                    return BadRequest("Player does not exist");
+                }
+
+                var game = _context.Games.FirstOrDefault(g => g.Datetimestarted == beginGame.DateTimeStarted && g.PlayerOne == beginGame.Username);
+                if (game == null)
+                {
+                    return BadRequest("Game does not exist");
+                }
+
+                //create a new round and update it
+                var round = new Round
+                {
+                    Gameid = game.Gameid,
+                    Roundnumber = beginGame.roundCounter,
+                    PlayerOneChoice = beginGame.PlayerChoice,
+                    PlayerTwoChoice = aiSelection.AiChoice()
+                };
+
+            
+                //insert the game into the database
+                _context.Games.Add(game);
+                _context.SaveChanges();
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+            }
+        }
+
+
     }
+
 }
