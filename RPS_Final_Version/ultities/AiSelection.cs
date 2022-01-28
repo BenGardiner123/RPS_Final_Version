@@ -25,5 +25,53 @@ namespace RPS_Final_Version.ultities
                 return "Scissors";
             }
         }   
+
+        //calulate the winner  of the rock paper scissors
+        public string CalculateGameWinner(string playerOneChoice, string playerTwoChoice){
+            //if the player one choice is "Rock" and the player two choice is "Scissors" then player one wins
+            if (playerOneChoice == "Rock" && playerTwoChoice == "Scissors")
+            {
+                return "Player One";
+            }
+            //if the player one choice is "Rock" and the player two choice is "Paper" then player two wins
+            else if (playerOneChoice == "Rock" && playerTwoChoice == "Paper")
+            {
+                return "Player Two";
+            }
+            //if the player one choice is "Paper" and the player two choice is "Rock" then player one wins
+            else if (playerOneChoice == "Paper" && playerTwoChoice == "Rock")
+            {
+                return "Player One";
+            }
+            //if the player one choice is "Paper" and the player two choice is "Scissors" then player two wins
+            else if (playerOneChoice == "Paper" && playerTwoChoice == "Scissors")
+            {
+                return "Player Two";
+            }
+            //if the player one choice is "Scissors" and the player two choice is "Rock" then player two wins
+            else if (playerOneChoice == "Scissors" && playerTwoChoice == "Rock")
+            {
+                return "Player Two";
+            }
+            //if the player one choice is "Scissors" and the player two choice is "Paper" then player one wins
+            else if (playerOneChoice == "Scissors" && playerTwoChoice == "Paper")
+            {
+                return "Player One";
+            }
+            //if the player one choice is the same as the player two choice then it is a tie
+            else if (playerOneChoice == playerTwoChoice)
+            {
+                return "Tie";
+            }
+            //if the player one choice is not a valid choice then return an error
+            else
+            {
+                return "Error";
+            }
+
+        }
     }
+
+    
+    
 }

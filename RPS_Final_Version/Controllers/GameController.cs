@@ -76,7 +76,7 @@ namespace RPS_Final_Version.Controllers
         }
 
         [HttpPost("postSelection")]
-        public ActionResult<GameCheckResponseModel> PostSelection(GameSelectionModel beginGame)
+        public ActionResult<GameSelectionResponseModel> PostSelection(GameSelectionModel beginGame)
         {
             //make user incoming model is not null
             if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue || beginGame.roundLimit == 0 || beginGame.PlayerChoice == null)
@@ -108,12 +108,18 @@ namespace RPS_Final_Version.Controllers
                     PlayerTwoChoice = aiSelection.AiChoice()
                 };
 
-            
-                //insert the game into the database
-                _context.Games.Add(game);
+                //add the round to the database
+                _context.Rounds.Add(round);
                 _context.SaveChanges();
+                
+                //if save changes succesful then calulate the winner and return the information to the front end
+                var roundOutcome = aiSelection.CalculateGameWinner(round.PlayerOneChoice, round.PlayerTwoChoice);
 
-                return Ok();
+                return Ok(new GameSelectionResponseModel
+                {
+                    PlayerTwoChoice = round.PlayerTwoChoice,
+                    outcome = roundOutcome
+                });
             }
             catch (Exception ex)
             {
