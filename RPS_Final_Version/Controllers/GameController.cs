@@ -31,7 +31,7 @@ namespace RPS_Final_Version.Controllers
         public ActionResult
             Post([FromBody] GameCheckRequestModel beginGame)
         {
-            var debuggerCheck = beginGame;
+           
 
             //make user incoming model is not null
             if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue || beginGame.roundLimit == 0)
@@ -48,29 +48,42 @@ namespace RPS_Final_Version.Controllers
                     return BadRequest("Player does not exist");
                 }
 
-                //create a new game and add it to the database
-                var game = new Game
+                var gameSetup = _context.Games.FirstOrDefault(g => g.Gameid <= 1);
+                if (gameSetup == null)
                 {
-                    Gamecode = Guid.NewGuid().ToString(),
-                    Roundlimit = beginGame.roundLimit,
-                    Datetimestarted = beginGame.DateTimeStarted,
-                    PlayerOne = beginGame.Username,
-                    PlayerTwo = "The AI Bot",
-                   
-                };
+                    //create a new game with id set to 1
+                    var newGame = new Game
+                    {
+                        Gameid = 1,
+                        Gamecode = Guid.NewGuid().ToString(),
+                        Datetimestarted = beginGame.DateTimeStarted,
+                        Roundlimit = beginGame.roundLimit,
+                        PlayerOne = beginGame.Username,
+                        PlayerTwo = "The AI Bot"
+                    };
+                    _context.Games.Add(newGame);
+                    _context.SaveChanges();
+                }
+                else
+                {
+                    //create a new game with id set to the max gameid +1
+                    var newGameAlt = new Game
+                    {
+                        Gameid = _context.Games.Max(g => g.Gameid) + 1,
+                        Gamecode = Guid.NewGuid().ToString(),
+                        Datetimestarted = beginGame.DateTimeStarted,
+                        Roundlimit = beginGame.roundLimit,
+                        PlayerOne = beginGame.Username,
+                        PlayerTwo = "The AI Bot"
+                    };
+                    _context.Games.Add(newGameAlt);
+                    _context.SaveChanges();
 
-                var checker = game;
-
-                //insert the game into the database
-                _context.Games.Add(game);
-                _context.SaveChanges();
+                }
 
 
                 //if save changes succesful then return the gamecheck response model
-                return Ok( "That worked");
-
-
-
+                return Ok("That worked");
 
             }
             catch (Exception ex)
