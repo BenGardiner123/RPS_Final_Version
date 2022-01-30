@@ -52,16 +52,14 @@ namespace RPS_Final_Version.Controllers
                 var game = new Game
                 {
                     Gamecode = Guid.NewGuid().ToString(),
-                    GamerWinner = "",
                     Roundlimit = beginGame.roundLimit,
                     Datetimestarted = beginGame.DateTimeStarted,
-                    Datetimeended = DateTime.MinValue,
                     PlayerOne = beginGame.Username,
                     PlayerTwo = "The AI Bot",
-                    PlayerOneNavigation = player,
-                    PlayerTwoNavigation = _context.Players.FirstOrDefault(p => p.Username == "The AI Bot")
-
+                   
                 };
+
+                var checker = game;
 
                 //insert the game into the database
                 _context.Games.Add(game);
@@ -69,7 +67,7 @@ namespace RPS_Final_Version.Controllers
 
 
                 //if save changes succesful then return the gamecheck response model
-                return Ok();
+                return Ok( "That worked");
 
 
 
