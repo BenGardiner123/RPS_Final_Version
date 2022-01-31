@@ -30,7 +30,8 @@ namespace RPS_Final_Version.Controllers
         [HttpPost("StartGame")]
         public ActionResult <GameCheckResponseModel>Post([FromBody] GameCheckRequestModel beginGame)
         {
-           
+            var gameCheck = beginGame;
+
             //make user incoming model is not null values that might stuff the process up
             if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue || beginGame.roundLimit == 0)
             {
@@ -91,7 +92,7 @@ namespace RPS_Final_Version.Controllers
                     Username = beginGame.Username,
                     roundLimit = beginGame.roundLimit,
                     DateTimeStarted = beginGame.DateTimeStarted,
-                    roundCounter = beginGame.currentRound   
+                    roundCounter = beginGame.roundCounter   
                 });
 
             }
@@ -106,6 +107,8 @@ namespace RPS_Final_Version.Controllers
         [HttpPost("postSelection")]
         public ActionResult<GameSelectionResponseModel> PostSelection(GameSelectionModel beginGame)
         {
+
+           
             //make user incoming model is not null
             if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue || 
                 beginGame.roundLimit == 0 || beginGame.PlayerChoice == null)
