@@ -28,12 +28,10 @@ namespace RPS_Final_Version.Controllers
 
         // POST api/Game/StartGame
         [HttpPost("StartGame")]
-        public ActionResult
-            Post([FromBody] GameCheckRequestModel beginGame)
+        public ActionResult <GameCheckResponseModel>Post([FromBody] GameCheckRequestModel beginGame)
         {
            
-
-            //make user incoming model is not null
+            //make user incoming model is not null values that might stuff the process up
             if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue || beginGame.roundLimit == 0)
             {
                 return BadRequest("Please enter a username, datetime, and round limit");
@@ -41,17 +39,18 @@ namespace RPS_Final_Version.Controllers
 
             try
             {
-                //check if the player exists  //check if the player exists
+                //check if the player exists 
                 var player = _context.Players.FirstOrDefault(p => p.Username == beginGame.Username);
                 if (player == null)
                 {
                     return BadRequest("Player does not exist");
                 }
 
-                var gameSetup = _context.Games.FirstOrDefault(g => g.Gameid <= 1);
+                //get the game id to be used in the next step
+                var gameSetup = _context.Games.FirstOrDefault(g => g.Gameid == 1);
                 if (gameSetup == null)
                 {
-                    //create a new game with id set to 1
+                    //create a new game with id set to 1 if none exists
                     var newGame = new Game
                     {
                         Gameid = 1,
@@ -64,10 +63,10 @@ namespace RPS_Final_Version.Controllers
                     _context.Games.Add(newGame);
                     _context.SaveChanges();
                 }
-                else
+                else if (gameSetup.Gameid >= 1)
                 {
-                    //create a new game with id set to the max gameid +1
-                    var newGameAlt = new Game
+                      //other create a new game with id set to +1 whatever the current max game id is
+                    var newGame = new Game
                     {
                         Gameid = _context.Games.Max(g => g.Gameid) + 1,
                         Gamecode = Guid.NewGuid().ToString(),
@@ -76,14 +75,24 @@ namespace RPS_Final_Version.Controllers
                         PlayerOne = beginGame.Username,
                         PlayerTwo = "The AI Bot"
                     };
-                    _context.Games.Add(newGameAlt);
+                    _context.Games.Add(newGame);
                     _context.SaveChanges();
-
+                  
                 }
-
+                else
+                {
+                    return BadRequest("Game already exists");
+                }
+               
 
                 //if save changes succesful then return the gamecheck response model
-                return Ok("That worked");
+                return Ok(new GameCheckResponseModel
+                {
+                    Username = beginGame.Username,
+                    roundLimit = beginGame.roundLimit,
+                    DateTimeStarted = beginGame.DateTimeStarted,
+                    roundCounter = beginGame.currentRound   
+                });
 
             }
             catch (Exception ex)
@@ -98,14 +107,15 @@ namespace RPS_Final_Version.Controllers
         public ActionResult<GameSelectionResponseModel> PostSelection(GameSelectionModel beginGame)
         {
             //make user incoming model is not null
-            if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue || beginGame.roundLimit == 0 || beginGame.PlayerChoice == null)
+            if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue || 
+                beginGame.roundLimit == 0 || beginGame.PlayerChoice == null)
             {
                 return BadRequest("Please enter a username, datetime, and round limit");
             }
 
             try
             {
-                //check if the player and DateTimeStarted exists
+                //check if the player and game exist
                 var player = _context.Players.FirstOrDefault(p => p.Username == beginGame.Username);
                 if (player == null)
                 {
@@ -121,7 +131,7 @@ namespace RPS_Final_Version.Controllers
                 var gameIdCheck = game.Gameid;
 
 
-                //create a new round and update it
+                //create a new round for the game and update it
                 var round = new Round
                 {
                     Gameid = game.Gameid,
