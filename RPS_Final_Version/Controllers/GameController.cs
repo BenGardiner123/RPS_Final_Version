@@ -19,6 +19,7 @@ namespace RPS_Final_Version.Controllers
         public IConfiguration Configuration { get; }
         //create a new instance of the AI selection class
         AiSelection aiSelection = new AiSelection();
+        calcWinner calcWinner = new calcWinner();
 
         public GameController(rock_paper_scissorsContext context, IConfiguration configuration)
         {
@@ -156,7 +157,7 @@ namespace RPS_Final_Version.Controllers
 
                     var passTheRoundInfo = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
 
-                    var gameWinner = aiSelection.CalulateGameWinner(passTheRoundInfo);
+                    var gameWinner = calcWinner.CalulateGameWinner(passTheRoundInfo);
 
                     //update the db with the game winner where the gameid is equal to the gameid
                     var updateGame = _context.Games.FirstOrDefault(g => g.Gameid == game.Gameid);
@@ -198,8 +199,9 @@ namespace RPS_Final_Version.Controllers
             }
         }
 
+
         [HttpGet("GameResult")]
-        public async Task<ActionResult<Round[]>> GetGameResult(int gameId)
+        public async Task<ActionResult<GameResultResponseModel>> GetGameResult(int gameId)
         {
             var game = await _context.Games.FindAsync(gameId);
 
@@ -208,12 +210,37 @@ namespace RPS_Final_Version.Controllers
                 return NotFound();
             }
 
-            //calulate the winner of the game and return the information to the front end
-            var gameWinner = await _context.Rounds.Where(r => r.Gameid == gameId).ToListAsync();
+            //try catch to get the rounds for the game
+            try
+            {
+                var rounds = _context.Rounds.Where(r => r.Gameid == gameId).ToList();
+                //create a new list that holds the players choices for each round
+                var playerChoices = new List<string>();
+                //create a new list that holds the ai choices for each round
+                var aiChoices = new List<string>();
 
+                foreach (var round in rounds)
+                {
+                    playerChoices.Add(round.PlayerOneChoice);
+                    aiChoices.Add(round.PlayerTwoChoice);
+                }
 
+                var winner = game.GameWinner;
 
-            return Ok(game);
+                return Ok(new GameResultResponseModel
+                {
+                    GameWinner = winner,
+                    Rounds = rounds
+                });
+                
+
+             
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+            }
+            
         }
 
     }
