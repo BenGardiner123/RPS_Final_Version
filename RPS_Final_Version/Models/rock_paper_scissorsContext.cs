@@ -34,7 +34,7 @@ namespace RPS_Final_Version.Models
             modelBuilder.Entity<Choice>(entity =>
             {
                 entity.HasKey(e => e.Description)
-                    .HasName("PK__CHOICE__4193D92F4897F363");
+                    .HasName("PK__CHOICE__4193D92F491B2636");
 
                 entity.ToTable("CHOICE");
 
@@ -59,13 +59,13 @@ namespace RPS_Final_Version.Models
                     .HasColumnType("datetime")
                     .HasColumnName("DATETIMESTARTED");
 
+                entity.Property(e => e.GameWinner)
+                    .HasMaxLength(20)
+                    .HasColumnName("GAME_WINNER");
+
                 entity.Property(e => e.Gamecode)
                     .HasMaxLength(255)
                     .HasColumnName("GAMECODE");
-
-                entity.Property(e => e.GamerWinner)
-                    .HasMaxLength(255)
-                    .HasColumnName("GAMER_WINNER");
 
                 entity.Property(e => e.PlayerOne)
                     .HasMaxLength(255)
@@ -81,19 +81,19 @@ namespace RPS_Final_Version.Models
                     .WithMany(p => p.GamePlayerOneNavigations)
                     .HasForeignKey(d => d.PlayerOne)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK__GAME__PLAYER_ONE__236943A5");
+                    .HasConstraintName("FK__GAME__PLAYER_ONE__503BEA1C");
 
                 entity.HasOne(d => d.PlayerTwoNavigation)
                     .WithMany(p => p.GamePlayerTwoNavigations)
                     .HasForeignKey(d => d.PlayerTwo)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK__GAME__PLAYER_TWO__245D67DE");
+                    .HasConstraintName("FK__GAME__PLAYER_TWO__51300E55");
             });
 
             modelBuilder.Entity<Player>(entity =>
             {
                 entity.HasKey(e => e.Username)
-                    .HasName("PK__PLAYER__B15BE12F66EB9D4D");
+                    .HasName("PK__PLAYER__B15BE12FD01F52A9");
 
                 entity.ToTable("PLAYER");
 
@@ -105,7 +105,7 @@ namespace RPS_Final_Version.Models
             modelBuilder.Entity<Round>(entity =>
             {
                 entity.HasKey(e => new { e.Roundnumber, e.Gameid, e.PlayerOneChoice, e.PlayerTwoChoice })
-                    .HasName("PK__ROUND__C3DB5F0DC7CF8D00");
+                    .HasName("PK__ROUND__C3DB5F0D48FFB294");
 
                 entity.ToTable("ROUND");
 
@@ -121,23 +121,27 @@ namespace RPS_Final_Version.Models
                     .HasMaxLength(50)
                     .HasColumnName("PLAYER_TWO_CHOICE");
 
+                entity.Property(e => e.Winner)
+                    .HasMaxLength(12)
+                    .HasColumnName("WINNER");
+
                 entity.HasOne(d => d.Game)
                     .WithMany(p => p.Rounds)
                     .HasForeignKey(d => d.Gameid)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK__ROUND__GAMEID__2BFE89A6");
+                    .HasConstraintName("FK__ROUND__GAMEID__59C55456");
 
                 entity.HasOne(d => d.PlayerOneChoiceNavigation)
                     .WithMany(p => p.RoundPlayerOneChoiceNavigations)
                     .HasForeignKey(d => d.PlayerOneChoice)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK__ROUND__PLAYER_ON__2CF2ADDF");
+                    .HasConstraintName("FK__ROUND__PLAYER_ON__5AB9788F");
 
                 entity.HasOne(d => d.PlayerTwoChoiceNavigation)
                     .WithMany(p => p.RoundPlayerTwoChoiceNavigations)
                     .HasForeignKey(d => d.PlayerTwoChoice)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK__ROUND__PLAYER_TW__2DE6D218");
+                    .HasConstraintName("FK__ROUND__PLAYER_TW__5BAD9CC8");
             });
 
             OnModelCreatingPartial(modelBuilder);

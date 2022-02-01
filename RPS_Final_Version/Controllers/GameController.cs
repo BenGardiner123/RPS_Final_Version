@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RPS_Final_Version.Models;
 using RPS_Final_Version.Models.ViewModels;
 using RPS_Final_Version.ultities;
@@ -28,7 +29,7 @@ namespace RPS_Final_Version.Controllers
 
         // POST api/Game/StartGame
         [HttpPost("StartGame")]
-        public ActionResult <GameCheckResponseModel>Post([FromBody] GameCheckRequestModel beginGame)
+        public ActionResult<GameCheckResponseModel> Post([FromBody] GameCheckRequestModel beginGame)
         {
             var gameCheck = beginGame;
 
@@ -66,7 +67,7 @@ namespace RPS_Final_Version.Controllers
                 }
                 else if (gameSetup.Gameid >= 1)
                 {
-                      //other create a new game with id set to +1 whatever the current max game id is
+                    //other create a new game with id set to +1 whatever the current max game id is
                     var newGame = new Game
                     {
                         Gameid = _context.Games.Max(g => g.Gameid) + 1,
@@ -78,13 +79,13 @@ namespace RPS_Final_Version.Controllers
                     };
                     _context.Games.Add(newGame);
                     _context.SaveChanges();
-                  
+
                 }
                 else
                 {
                     return BadRequest("Game already exists");
                 }
-               
+
 
                 //if save changes succesful then return the gamecheck response model
                 return Ok(new GameCheckResponseModel
@@ -92,7 +93,7 @@ namespace RPS_Final_Version.Controllers
                     Username = beginGame.Username,
                     roundLimit = beginGame.roundLimit,
                     DateTimeStarted = beginGame.DateTimeStarted,
-                    roundCounter = beginGame.roundCounter   
+                    roundCounter = beginGame.roundCounter
                 });
 
             }
@@ -108,9 +109,9 @@ namespace RPS_Final_Version.Controllers
         public ActionResult<GameSelectionResponseModel> PostSelection(GameSelectionModel beginGame)
         {
 
-           
+
             //make user incoming model is not null
-            if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue || 
+            if (beginGame.Username == null || beginGame.DateTimeStarted == DateTime.MinValue ||
                 beginGame.roundLimit == 0 || beginGame.PlayerChoice == null)
             {
                 return BadRequest("Please enter a username, datetime, and round limit");
@@ -131,8 +132,8 @@ namespace RPS_Final_Version.Controllers
                     return BadRequest("Game does not exist");
                 }
 
-                var gameIdCheck = game.Gameid;
-
+                var createAiChoice = aiSelection.AiChoice();
+                var whoWonThisRound = aiSelection.CalculateRoundWinner(beginGame.PlayerChoice, createAiChoice);
 
                 //create a new round for the game and update it
                 var round = new Round
@@ -140,21 +141,56 @@ namespace RPS_Final_Version.Controllers
                     Gameid = game.Gameid,
                     Roundnumber = beginGame.roundCounter,
                     PlayerOneChoice = beginGame.PlayerChoice,
-                    PlayerTwoChoice = aiSelection.AiChoice()
+                    PlayerTwoChoice = createAiChoice,
+                    Winner = whoWonThisRound
                 };
 
                 //add the round to the database
                 _context.Rounds.Add(round);
                 _context.SaveChanges();
 
-                //if save changes succesful then calulate the winner and return the information to the front end
-                var roundOutcome = aiSelection.CalculateGameWinner(round.PlayerOneChoice, round.PlayerTwoChoice);
 
-                return Ok(new GameSelectionResponseModel
+                //check if the roundCounter is equal to the round limit and if it is then we update the game record in the DB
+                if (beginGame.roundCounter == beginGame.roundLimit)
                 {
-                    PlayerTwoChoice = round.PlayerTwoChoice,
-                    outcome = roundOutcome
-                });
+
+                    var passTheRoundInfo = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
+
+                    var gameWinner = aiSelection.CalulateGameWinner(passTheRoundInfo);
+
+                    //update the db with the game winner where the gameid is equal to the gameid
+                    var updateGame = _context.Games.FirstOrDefault(g => g.Gameid == game.Gameid);
+
+                    //null check the updateGame
+                    if (updateGame != null)
+                    {
+                        updateGame.GameWinner = gameWinner;
+                        updateGame.Datetimeended = DateTime.Now;
+                        _context.SaveChanges();
+                    }
+
+                    //we still want to return the round winner and then another endpoint will take care of the rest
+                    return Ok(new GameSelectionResponseModel
+                    {
+                        PlayerTwoChoice = round.PlayerTwoChoice,
+                        outcome = round.Winner
+                    });
+
+
+
+                }
+                else
+                {
+                    //if it is not then return the game winner and the next round counter
+                    return Ok(new GameSelectionResponseModel
+                    {
+                        PlayerTwoChoice = round.PlayerTwoChoice,
+                        outcome = round.Winner
+                    });
+                }
+
+
+
             }
             catch (Exception ex)
             {
@@ -162,6 +198,23 @@ namespace RPS_Final_Version.Controllers
             }
         }
 
+        [HttpGet("GameResult")]
+        public async Task<ActionResult<Round[]>> GetGameResult(int gameId)
+        {
+            var game = await _context.Games.FindAsync(gameId);
+
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            //calulate the winner of the game and return the information to the front end
+            var gameWinner = await _context.Rounds.Where(r => r.Gameid == gameId).ToListAsync();
+
+
+
+            return Ok(game);
+        }
 
     }
 

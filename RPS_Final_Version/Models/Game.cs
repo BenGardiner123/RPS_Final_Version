@@ -12,7 +12,7 @@ namespace RPS_Final_Version.Models
 
         public int Gameid { get; set; }
         public string Gamecode { get; set; } = null!;
-        public string? GamerWinner { get; set; }
+        public string? GameWinner { get; set; }
         public int Roundlimit { get; set; }
         public DateTime Datetimestarted { get; set; }
         public DateTime? Datetimeended { get; set; }
