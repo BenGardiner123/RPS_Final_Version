@@ -64,7 +64,7 @@ namespace RPS_Final_Version.ultities
             //if the player one choice is the same as the player two choice then it is a tie
             else if (playerOneChoice == playerTwoChoice)
             {
-                return "Tie";
+                return "Draw";
             }
             //if the player one choice is not a valid choice then return an error
             else

@@ -200,10 +200,10 @@ namespace RPS_Final_Version.Controllers
         }
 
 
-        [HttpGet("GameResult")]
-        public async Task<ActionResult<GameResultResponseModel>> GetGameResult(int gameId)
+        [HttpPost("GameResult")]
+        public async Task<ActionResult<GameResultResponseModel>> GetGameResult(string username, DateTime dateTimeStarted)
         {
-            var game = await _context.Games.FindAsync(gameId);
+            var game = await _context.Games.FirstOrDefaultAsync(x => x.Datetimestarted == dateTimeStarted && x.PlayerOne == username);
 
             if (game == null)
             {
@@ -213,26 +213,25 @@ namespace RPS_Final_Version.Controllers
             //try catch to get the rounds for the game
             try
             {
-                var rounds = _context.Rounds.Where(r => r.Gameid == gameId).ToList();
-                //create a new list that holds the players choices for each round
-                var playerChoices = new List<string>();
-                //create a new list that holds the ai choices for each round
-                var aiChoices = new List<string>();
+                var output = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
 
-                foreach (var round in rounds)
+                var rounds = output.Select(r => new GameResultResponse_RoundModel
                 {
-                    playerChoices.Add(round.PlayerOneChoice);
-                    aiChoices.Add(round.PlayerTwoChoice);
-                }
-
-                var winner = game.GameWinner;
-
+                    RoundNumber = r.Roundnumber,
+                    PlayerOneChoice = r.PlayerOneChoice,
+                    PlayerTwoChoice = r.PlayerTwoChoice,
+                    Winner = r.Winner
+                }).ToList();
+                
+                //return the game result
                 return Ok(new GameResultResponseModel
                 {
-                    GameWinner = winner,
+                    GameWinner = game.GameWinner,
                     Rounds = rounds
                 });
                 
+
+               
 
              
             }
