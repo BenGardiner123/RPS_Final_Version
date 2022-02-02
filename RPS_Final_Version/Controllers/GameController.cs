@@ -177,8 +177,6 @@ namespace RPS_Final_Version.Controllers
                         outcome = round.Winner
                     });
 
-
-
                 }
                 else
                 {
@@ -189,8 +187,6 @@ namespace RPS_Final_Version.Controllers
                         outcome = round.Winner
                     });
                 }
-
-
 
             }
             catch (Exception ex)
@@ -222,24 +218,20 @@ namespace RPS_Final_Version.Controllers
                     PlayerTwoChoice = r.PlayerTwoChoice,
                     Winner = r.Winner
                 }).ToList();
-                
+
                 //return the game result
                 return Ok(new GameResultResponseModel
                 {
                     GameWinner = game.GameWinner,
                     Rounds = rounds
                 });
-                
 
-               
-
-             
             }
             catch (Exception ex)
             {
                 return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
             }
-            
+
         }
 
     }
