@@ -197,9 +197,9 @@ namespace RPS_Final_Version.Controllers
 
 
         [HttpPost("GameResult")]
-        public async Task<ActionResult<GameResultResponseModel>> GetGameResult(string username, DateTime dateTimeStarted)
+        public async Task<ActionResult<GameResultResponseModel>> GetGameResult(GameResultRequestModel userResultRequestModel)
         {
-            var game = await _context.Games.FirstOrDefaultAsync(x => x.Datetimestarted == dateTimeStarted && x.PlayerOne == username);
+            var game = await _context.Games.FirstOrDefaultAsync(x => x.Datetimestarted == userResultRequestModel.DateTimeStarted && x.PlayerOne == userResultRequestModel.Username);
 
             if (game == null)
             {
@@ -227,6 +227,8 @@ namespace RPS_Final_Version.Controllers
                 });
 
             }
+
+
             catch (Exception ex)
             {
                 return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
