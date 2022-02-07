@@ -25,34 +25,9 @@ namespace RPS_Final_Version.Controllers
 
         // GET: api/<Leaderboard>
         [HttpGet("getLeaderboard")]
-        public IEnumerable GetLeaderboard()
+        public ActionResult<LeaderboardViewModel> GetLeaderboard()
         {
-            //for ecah game get the player username and their most used choice for each round
-            // var leaderboard = (from g in _context.Games
-            //                    join p in _context.Players on g.PlayerOne equals p.Username
-            //                    join r in _context.Rounds on g.Gameid equals r.Gameid
-            //                    join c in _context.Choices on r.PlayerOneChoice equals c.Description
-            //                    group new { p, r, c } by new { p.Username } into g
-            //                    select new LeaderboardViewModel_Player
-            //                    {
-            //                        Username = g.Key.Username,
-            //                        //games played where the username == player one in games
-            //                        GamesPlayed = g.Count(x => x.p.Username == g.Key.Username),
-            //                        //games won is the count of the number of times the player won
-            //                        GamesWon = g.Count(x => x.r.Winner == "Player One"),
-            //                        //games lost is the count of the number of times the player lost
-            //                        GamesLost = g.Count(x => x.r.Winner == "Player Two"),
-            //                        //games tied is the count of the number of times the player tied
-            //                        GamesTied = g.Count(x => x.r.Winner == "Draw"),
-            //                        //win percentage is the percentage of games won divided by the total number of games played
-            //                        WinPercentage = (double)g.Count(x => x.r.Winner == "Player One") / g.Count(),
-            //                        //most used choice is the choice that was used the most in the game
-            //                        MostUsedChoice = g.Max(x => x.c.Description)
-            //                     }).ToList();
-
             
-
-            // return Task.FromResult<ActionResult<LeaderboardViewModel>>(Ok(leaderboard));
 
             //get the count from games played per username
             var gameCount = _context.Games.GroupBy(x => x.PlayerOne).Select(x => new { Username = x.Key, Count = x.Count() }).ToList();
@@ -70,49 +45,58 @@ namespace RPS_Final_Version.Controllers
             var winPercentage = _context.Games.GroupBy(x => x.PlayerOne).Select(x => new { Username = x.Key, Count = x.Count(y => y.GameWinner == "Player One") / x.Count() }).ToList();
 
             //get the most used choice per username
-            var RockOccurs = _context.Rounds.GroupBy(x => x.PlayerOneChoice).Select(x => new { Username = x.Key, Count = x.Count() }).ToList();
-            //create a new list to hold the rock occurances
-            var PaperOccurs = _context.Rounds.GroupBy(x => x.PlayerOneChoice).Select(x => new { Username = x.Key, Count = x.Count() }).ToList();
-            var ScissorsOccurs = _context.Rounds.GroupBy(x => x.PlayerOneChoice).Select(x => new { Username = x.Key, Count = x.Count() }).ToList();
-
-            var rockCount = RockOccurs.Count();
-            var paperCount = PaperOccurs.Count();
-            var scissorsCount = ScissorsOccurs.Count(); 
-
-            int d = Math.Max(rockCount, Math.Max(paperCount, scissorsCount));
-
-           
-
-
-            //combine the data into one list
-            var leaderboard = (from g in gameCount
-                               join w in gameWon on g.Username equals w.Username
-                               join l in gameLost on g.Username equals l.Username
-                               join t in gameTied on g.Username equals t.Username
-                               join p in winPercentage on g.Username equals p.Username
-                               join r in RockOccurs on g.Username equals r.Username
-                               join s in ScissorsOccurs on g.Username equals s.Username
-                               join p2 in PaperOccurs on g.Username equals p2.Username
-                               select new LeaderboardViewModel_Player
-                               {
-                                   Username = g.Username,
-                                   GamesPlayed = g.Count,
-                                   GamesWon = w.Count,
-                                   GamesLost = l.Count,
-                                   GamesTied = t.Count,
-                                   WinPercentage = p.Count,
-                                  
-                               }).ToList();
-
-            //create the leaderboard view model and return it
+            var choiceCount = _context.Rounds.GroupBy(x => x.PlayerOneChoice).Select(x => new { Username = x.Key, Count = x.Count() }).ToList();
             
+            int rockCount = 0;
+            int paperCount = 0;
+            int scissorsCount = 0;
 
-            return leaderboard;
-       
-            
+            foreach(var choice in choiceCount){
+                if(choice.Username == "Rock"){
+                    rockCount = choice.Count;
+                }
+                if(choice.Username == "Paper"){
+                    paperCount = choice.Count;
+                }
+                if(choice.Username == "Scissors"){
+                    scissorsCount = choice.Count;
+                }
+            }
+
+
+            //iterate over each of the lists and for each username add them to a leaderboard_player view model then add them to a leaderboard view model
+            var leaderboard_player = new LeaderboardViewModel_Player();
+            var leaderboard = new LeaderboardViewModel();
+
+            //check if the list inside leaderboard is null - because i was getting a null reference exception
+            //not sure on best pracice - i prolly should do this in the constructor
+            if (leaderboard.leaders == null)
+            {
+                leaderboard.leaders = new List<LeaderboardViewModel_Player>();
+            }   
+
+            foreach(var game in gameCount){
+                leaderboard_player.Username = game.Username;
+                leaderboard_player.GamesPlayed = game.Count;
+                leaderboard_player.GamesWon = gameWon.Find(x => x.Username == game.Username).Count;
+                leaderboard_player.GamesLost = gameLost.Find(x => x.Username == game.Username).Count;
+                leaderboard_player.GamesTied = gameTied.Find(x => x.Username == game.Username).Count;
+                leaderboard_player.WinPercentage = (double)gameWon.Find(x => x.Username == game.Username).Count / (double)game.Count;
+                leaderboard_player.MostUsedChoice = (rockCount > scissorsCount && rockCount > paperCount) ? "Rock" :
+                                    (scissorsCount > rockCount && scissorsCount > paperCount) ? "Scissors" : "Paper";
+                //add the leaderboard_player to the leaderboard
+
+                leaderboard.leaders.Add(leaderboard_player);
+            }
+
+
+
+            return Ok(leaderboard);
+
+
 
         }
-           
+
 
     }
 
