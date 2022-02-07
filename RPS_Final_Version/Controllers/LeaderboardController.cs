@@ -24,7 +24,7 @@ namespace RPS_Final_Version.Controllers
         }
 
         // GET: api/<Leaderboard>
-        [HttpGet("getLeaderboard")]
+        [HttpGet("Leaderboard")]
         public ActionResult<LeaderboardViewModel> GetLeaderboard()
         {
             
