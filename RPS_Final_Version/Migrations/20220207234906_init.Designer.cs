@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RPS_Final_Version.Models;
 
@@ -11,9 +12,10 @@ using RPS_Final_Version.Models;
 namespace RPS_Final_Version.Migrations
 {
     [DbContext(typeof(rock_paper_scissorsContext))]
-    partial class rock_paper_scissorsContextModelSnapshot : ModelSnapshot
+    [Migration("20220207234906_init")]
+    partial class init
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

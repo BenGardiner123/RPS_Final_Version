@@ -59,6 +59,19 @@ namespace Auth.Controllers
             return Unauthorized();
         }
 
+       //create a post method to log a user out
+
+        // [HttpPost]
+        // [Route("logout")]
+        // public async Task<IActionResult> Logout()
+        // {
+        //     //await HttpContext.SignOutAsync("Cookies");
+        //     //await HttpContext.SignOutAsync("oidc");
+        //     //return Ok();
+        // }
+
+
+
         [HttpPost]
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
@@ -74,6 +87,7 @@ namespace Auth.Controllers
                 UserName = model.Username
             };
             var result = await _userManager.CreateAsync(user, model.Password);
+            
             if (!result.Succeeded)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
 
