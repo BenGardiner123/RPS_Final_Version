@@ -35,12 +35,8 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(o => {
         o.Password.RequiredLength = 6;
         o.User.RequireUniqueEmail = true;
     })
-
-    
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
-
-
 
 // Adding Authentication
 builder.Services.AddAuthentication(options =>

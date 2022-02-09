@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RPS_Final_Version.Models;
+using RPS_Final_Version.Models.ViewModels;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -49,60 +50,34 @@ namespace RPS_Final_Version.Controllers
             
         }
 
-        // GET api/<PlayerController>/Login
-        [HttpGet("Login/{playerName}")]
-        public async Task<IActionResult> Get(string playerName)
-        {
-            
-            try
-            {
-                //check if the player exists
-                var player = await _context.Players.FirstOrDefaultAsync(p => p.Username == playerName);
-                if (player == null)
-                {
-                    return Ok("Player not found");
-                }
-                else
-                {
-                    return Ok(player.Username);  
-                }
-               
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
-            }
-           
-            
-        }
 
         // POST api/<PlayerController>
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] string value)
+        public async Task<IActionResult> Post([FromBody] PlayerRegisterNameCheckRequestModel model)
         {
             try
             {
                  //check if player name already exists
 
-                var player = await _context.Players.FirstOrDefaultAsync(p => p.Username == value);
+                var player = await _context.Players.FirstOrDefaultAsync(p => p.Username == model.Username);
 
                 if (player == null)
                 {
-                    //create a new player
+                   //if not, create a new player
                     var newPlayer = new Player
                     {
-                        Username = value
+                        Username = model.Username
                     };
 
                     //add the new player to the database
                     _context.Players.Add(newPlayer);
                     _context.SaveChanges();
-                    return Ok("Player created");
+                    return Ok(new PlayerRegisterNameCheckResponseModel { Status = "Success", Message = "Player created successfully!" });
                 }
                 else
                 {
                     //player already exists
-                    return Ok("Player already exists");
+                    return Ok(new PlayerRegisterNameCheckResponseModel { Status = "Success", Message = "Player Already exsits!" });
                 }
 
             }
@@ -112,13 +87,7 @@ namespace RPS_Final_Version.Controllers
             }
         }
 
-        // ... im not sure if i need this
-        // // PUT api/<PlayerController>/5
-        // [HttpPut("{id}")]
-        // public void Put(int id, [FromBody] string value)
-        // {
-
-        // }
+        
 
         // DELETE api/<PlayerController>/5
         [HttpDelete("{id}")]

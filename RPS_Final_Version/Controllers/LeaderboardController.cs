@@ -75,6 +75,8 @@ namespace RPS_Final_Version.Controllers
                 leaderboard.leaders = new List<LeaderboardViewModel_Player>();
             }   
 
+            
+
             foreach(var game in gameCount){
                 leaderboard_player.Username = game.Username;
                 leaderboard_player.GamesPlayed = game.Count;

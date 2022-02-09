@@ -1,4 +1,5 @@
 ﻿using Auth.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -48,7 +49,10 @@ namespace Auth.Controllers
                     authClaims.Add(new Claim(ClaimTypes.Role, userRole));
                 }
 
+
                 var token = GetToken(authClaims);
+
+                
 
                 return Ok(new
                 {
@@ -59,18 +63,15 @@ namespace Auth.Controllers
             return Unauthorized();
         }
 
-       //create a post method to log a user out
-
-        // [HttpPost]
-        // [Route("logout")]
-        // public async Task<IActionResult> Logout()
-        // {
-        //     //await HttpContext.SignOutAsync("Cookies");
-        //     //await HttpContext.SignOutAsync("oidc");
-        //     //return Ok();
-        // }
-
-
+        //create an endpopint that can only be accessed by an authenticated user
+        //only allow this endpoint to be accessed by an authenticated user
+        [Authorize (Roles = "User")]
+        [HttpGet, Route("check")]
+        public IEnumerable<string> Get()
+        {
+            return new string[] { "Authenticated" };
+        }
+        
 
         [HttpPost]
         [Route("register")]
