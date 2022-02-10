@@ -49,6 +49,7 @@ namespace Auth.Controllers
                     authClaims.Add(new Claim(ClaimTypes.Role, userRole));
                 }
 
+                
 
                 var token = GetToken(authClaims);
 
@@ -56,6 +57,7 @@ namespace Auth.Controllers
 
                 return Ok(new
                 {
+                    username = user.UserName,
                     token = new JwtSecurityTokenHandler().WriteToken(token),
                     expiration = token.ValidTo
                 });
@@ -63,16 +65,9 @@ namespace Auth.Controllers
             return Unauthorized();
         }
 
-        //create an endpopint that can only be accessed by an authenticated user
-        //only allow this endpoint to be accessed by an authenticated user
-        [Authorize (Roles = "User")]
-        [HttpGet, Route("check")]
-        public IEnumerable<string> Get()
-        {
-            return new string[] { "Authenticated" };
-        }
         
 
+       
         [HttpPost]
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
@@ -85,8 +80,12 @@ namespace Auth.Controllers
             {
                 Email = model.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Username
+                UserName = model.Username,
+                
             };
+            //add role to user
+            
+            
             var result = await _userManager.CreateAsync(user, model.Password);
             
             if (!result.Succeeded)
