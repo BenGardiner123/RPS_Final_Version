@@ -58,6 +58,7 @@ namespace Auth.Controllers
                 return Ok(new
                 {
                     username = user.UserName,
+                    email = user.Email,
                     token = new JwtSecurityTokenHandler().WriteToken(token),
                     expiration = token.ValidTo
                 });

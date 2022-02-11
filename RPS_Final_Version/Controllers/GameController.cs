@@ -162,13 +162,19 @@ namespace RPS_Final_Version.Controllers
                     //update the db with the game winner where the gameid is equal to the gameid
                     var updateGame = _context.Games.FirstOrDefault(g => g.Gameid == game.Gameid);
 
-                    //null check the updateGame
+                    //null check then update the game winner
                     if (updateGame != null)
                     {
                         updateGame.GameWinner = gameWinner;
                         updateGame.Datetimeended = DateTime.Now;
+                        _context.Attach(updateGame);
+                        _context.Entry(updateGame).Property(x => x.GameWinner).IsModified = true;
+                        _context.Entry(updateGame).Property(x => x.Datetimeended).IsModified = true;
                         _context.SaveChanges();
+
                     }
+
+                    var gameCheck = _context.Games.FirstOrDefault(g => g.Gameid == game.Gameid);
 
                     //we still want to return the round winner and then another endpoint will take care of the rest
                     return Ok(new GameSelectionResponseModel
@@ -199,33 +205,50 @@ namespace RPS_Final_Version.Controllers
         [HttpPost("GameResult")]
         public async Task<ActionResult<GameResultResponseModel>> GetGameResult(GameResultRequestModel userResultRequestModel)
         {
-            var game = await _context.Games.FirstOrDefaultAsync(x => x.Datetimestarted == userResultRequestModel.DateTimeStarted && x.PlayerOne == userResultRequestModel.Username);
-
-            if (game == null)
-            {
-                return NotFound();
-            }
-
-            //try catch to get the rounds for the game
             try
             {
-                var output = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
-
-                var rounds = output.Select(r => new GameResultResponse_RoundModel
+                //make user incoming model is not null
+                if (userResultRequestModel.Username == null || userResultRequestModel.DateTimeStarted == DateTime.MinValue)
                 {
-                    RoundNumber = r.Roundnumber,
-                    PlayerOneChoice = r.PlayerOneChoice,
-                    PlayerTwoChoice = r.PlayerTwoChoice,
-                    Winner = r.Winner
-                }).ToList();
+                    return BadRequest("Please enter a username, datetime, and round limit");
+                }
 
-                //return the game result
-                return Ok(new GameResultResponseModel
+                var game = await _context.Games.FirstOrDefaultAsync(x => x.Datetimestarted == userResultRequestModel.DateTimeStarted && x.PlayerOne == userResultRequestModel.Username);
+
+                if (game == null)
                 {
-                    GameWinner = game.GameWinner,
-                    Rounds = rounds
-                });
+                    return NotFound();
+                }
 
+                if(game.GameWinner == null)
+                {
+                    return Ok("Error: Game has not been completed");
+                    
+                }
+
+                var addRounds = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
+                var winner = game.GameWinner;
+
+                var roundList = new List<GameResultResponse_RoundModel>();
+                //add addrounds to roundlist
+                foreach (var round in addRounds)
+                {
+                    roundList.Add(new GameResultResponse_RoundModel
+                    {
+                        PlayerOneChoice = round.PlayerOneChoice,
+                        PlayerTwoChoice = round.PlayerTwoChoice,
+                        Winner = round.Winner
+                    });
+                }
+
+
+                var gameResult = new GameResultResponseModel
+                {
+                    Rounds = roundList,
+                   
+                };
+
+                return Ok(gameResult);
             }
 
 
@@ -234,6 +257,70 @@ namespace RPS_Final_Version.Controllers
                 return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
             }
 
+        }
+
+        //create an endpoint to ge the winner of the game
+        [HttpPost("GameWinner")]
+        public ActionResult<GameWinnerResponseModel> GetGameWinner(GameWinnerRequestModel gameWinnerRequestModel)
+        {
+
+
+            try
+            {
+                
+                var output = getWinner(gameWinnerRequestModel.DateTimeStarted, gameWinnerRequestModel.Username);
+
+                //create a new game winner response model
+                var gameWinnerResponseModel = new GameWinnerResponseModel
+                {
+                    GameWinner = output
+                };  
+
+                return Ok(gameWinnerResponseModel);
+                
+
+        
+        
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+            }
+
+
+            
+        }
+
+        //create an endpoint to get all the games that a player has played
+        [HttpGet("PlayerGames")]
+        public List<Game> GetGames(){
+                    
+                var playerGames = _context.Games.Where(g => g.PlayerOne == "Zack").ToList();
+    
+                return playerGames;
+        }
+
+        public static string getWinner(DateTime dateTime, string username)
+        {
+            using (var context = new rock_paper_scissorsContext())
+            {
+                var game = context.Games.FirstOrDefault(g => g.Datetimestarted == dateTime && g.PlayerOne == username);
+                if (game == null)
+                {
+                    return("Game does not exist");
+                }
+
+                var round = context.Rounds.FirstOrDefault(r => r.Gameid == game.Gameid);
+                if (round == null)
+                {
+                    return("Round does not exist");
+                }
+
+                var winner = round.Winner;
+
+                return winner;
+            }
+            
         }
 
     }
