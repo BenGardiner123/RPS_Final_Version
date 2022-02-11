@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using RPS_Final_Version.Models;
 using RPS_Final_Version.Models.ViewModels;
 using RPS_Final_Version.ultities;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -87,11 +89,15 @@ namespace RPS_Final_Version.Controllers
                     return BadRequest("Game already exists");
                 }
 
+                //get the game code to be used in the next step
+                var gameCode = _context.Games.FirstOrDefault(g => g.Gameid == 1);
+
 
                 //if save changes succesful then return the gamecheck response model
                 return Ok(new GameCheckResponseModel
                 {
                     Username = beginGame.Username,
+
                     roundLimit = beginGame.roundLimit,
                     DateTimeStarted = beginGame.DateTimeStarted,
                     roundCounter = beginGame.roundCounter
@@ -104,6 +110,38 @@ namespace RPS_Final_Version.Controllers
 
                 return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
             }
+        }
+
+        // create a get mthod that take username and datetime started as params returns the gamecode
+        // GET api/Game/GetGameCode/{username}/{datetime}
+        [HttpPost("GameCode")]
+        public ActionResult<GameCheckResponseModel> GetGameCode(GameCodeRequestModel requestModel)
+        {
+            //make sure the username and datetime are not null
+            if (requestModel.Username == null || requestModel.DateTimeStarted == DateTime.MinValue)
+            {
+                return BadRequest("Please enter a username and/or datetime");
+            }
+            
+        
+            //get gameCode from the database using the username and datetime
+            var game = _context.Games.FirstOrDefault(g => g.PlayerOne == requestModel.Username && g.Datetimestarted == requestModel.DateTimeStarted);
+
+            //if the game is null then return bad request
+            if (game == null)
+            {
+                return BadRequest("Game does not exist");
+            }
+
+            var gameCode = game.Gamecode;
+
+            //return the gamecode
+            return Ok(new GameCodeResponseModel
+            {
+
+                GameCode = gameCode
+            });
+
         }
 
         [HttpPost("postSelection")]
@@ -126,6 +164,7 @@ namespace RPS_Final_Version.Controllers
                 {
                     return BadRequest("Player does not exist");
                 }
+
 
                 var game = _context.Games.FirstOrDefault(g => g.Datetimestarted == beginGame.DateTimeStarted && g.PlayerOne == beginGame.Username);
                 if (game == null)
@@ -150,50 +189,12 @@ namespace RPS_Final_Version.Controllers
                 _context.Rounds.Add(round);
                 _context.SaveChanges();
 
-
-                //check if the roundCounter is equal to the round limit and if it is then we update the game record in the DB
-                if (beginGame.roundCounter == beginGame.roundLimit)
+                //we still want to return the round winner and then another endpoint will take care of the rest
+                return Ok(new GameSelectionResponseModel
                 {
-                    calcWinner calcWinner = new calcWinner();
-
-                    var passTheRoundInfo = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
-
-                    var gameWinner = calcWinner.CalulateGameWinner(passTheRoundInfo);
-
-                    //update the db with the game winner where the gameid is equal to the gameid
-                    var updateGame = _context.Games.FirstOrDefault(g => g.Gameid == game.Gameid);
-
-                    //null check then update the game winner
-                    if (updateGame != null)
-                    {
-                        updateGame.GameWinner = gameWinner;
-                        updateGame.Datetimeended = DateTime.Now;
-                        _context.Attach(updateGame);
-                        _context.Entry(updateGame).Property(x => x.GameWinner).IsModified = true;
-                        _context.Entry(updateGame).Property(x => x.Datetimeended).IsModified = true;
-                        _context.SaveChanges();
-
-                    }
-
-                    var gameCheck = _context.Games.FirstOrDefault(g => g.Gameid == game.Gameid);
-
-                    //we still want to return the round winner and then another endpoint will take care of the rest
-                    return Ok(new GameSelectionResponseModel
-                    {
-                        PlayerTwoChoice = round.PlayerTwoChoice,
-                        outcome = round.Winner
-                    });
-
-                }
-                else
-                {
-                    //if it is not then return the game winner and the next round counter
-                    return Ok(new GameSelectionResponseModel
-                    {
-                        PlayerTwoChoice = round.PlayerTwoChoice,
-                        outcome = round.Winner
-                    });
-                }
+                    PlayerTwoChoice = round.PlayerTwoChoice,
+                    outcome = round.Winner
+                });
 
             }
             catch (Exception ex)
@@ -202,17 +203,90 @@ namespace RPS_Final_Version.Controllers
             }
         }
 
-        
-
-
-        [HttpPost("GameResult")]
-        public async Task<ActionResult<GameResultResponseModel>> GetGameResult(GameResultRequestModel userResultRequestModel)
+        //create a post method that will calulate the winner of the game and update the game table
+        // POST api/Game/CalculateWinner
+        [HttpPost("CalculateWinner")]
+        public async Task<ActionResult<GameWinnerResponseModel>> CalculateWinner([FromBody] string gameCode)
         {
-            var game = await _context.Games.FirstOrDefaultAsync(x => x.Datetimestarted == userResultRequestModel.DateTimeStarted && x.PlayerOne == userResultRequestModel.Username);
+            //make sire the gamecode is not null
+            if (gameCode == null)
+            {
+                return BadRequest("Please enter a gamecode");
+            }
+            try
+            {
+                //get the game from the database
 
+                var game = await _context.Games.FirstOrDefaultAsync(g => g.Gamecode == gameCode);
+
+                if (game == null)
+                {
+                    return BadRequest("Game does not exist");
+                }
+
+                calcWinner calcWinner = new calcWinner();
+
+                //get the round limit from the game 
+                var roundLimit = game.Roundlimit;
+                //get the roundnumber from the game
+                var roundNumber = game.Rounds.Max(r => r.Roundnumber);
+
+                if (roundNumber == 0 || roundNumber < roundLimit)
+                {
+                    return BadRequest("Game has not started");
+                }
+
+                else if (roundNumber == roundLimit)
+                {
+                    var passTheRoundInfo = await _context.Rounds.Where(r => r.Gameid == game.Gameid).ToListAsync();
+
+                    var gameWinner = calcWinner.CalulateGameWinner(passTheRoundInfo);
+
+                    //update the game table with the winner
+                    game.GameWinner = gameWinner;
+                    game.Datetimeended = DateTime.Now;
+                    await _context.SaveChangesAsync();
+
+                    return Ok(new GameWinnerResponseModel
+                    {
+                        GameWinner = gameWinner
+                    });
+
+                }
+                else
+                {
+                    return BadRequest("Game has not ended");
+                }
+
+
+
+
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+            }
+
+        }
+
+
+        //GET api/Game/GameResult/{gamecode}
+        [HttpGet("GameResult")]
+        public ActionResult<GameWinnerResponseModel> GetGameWinner([FromQuery]string gamecode)
+        {
+            //make sure the gamecode is not null
+            if (gamecode == null)
+            {
+                return BadRequest("Please enter a gamecode");
+            }
+
+            //get the game from the database using the gamecode
+            var game = _context.Games.FirstOrDefault(g => g.Gamecode == gamecode);
+
+            //if the game is null then return bad request
             if (game == null)
             {
-                return NotFound();
+                return BadRequest("Game does not exist");
             }
 
             //try catch to get the rounds for the game
@@ -243,8 +317,8 @@ namespace RPS_Final_Version.Controllers
                 return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
             }
 
-        }
 
+        }
 
 
         public static string getWinner(DateTime dateTime, string username)
