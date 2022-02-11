@@ -19,7 +19,7 @@ namespace RPS_Final_Version.Controllers
         public IConfiguration Configuration { get; }
         //create a new instance of the AI selection class
         AiSelection aiSelection = new AiSelection();
-        calcWinner calcWinner = new calcWinner();
+
 
         public GameController(rock_paper_scissorsContext context, IConfiguration configuration)
         {
@@ -154,6 +154,7 @@ namespace RPS_Final_Version.Controllers
                 //check if the roundCounter is equal to the round limit and if it is then we update the game record in the DB
                 if (beginGame.roundCounter == beginGame.roundLimit)
                 {
+                    calcWinner calcWinner = new calcWinner();
 
                     var passTheRoundInfo = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
 
@@ -201,54 +202,39 @@ namespace RPS_Final_Version.Controllers
             }
         }
 
+        
+
 
         [HttpPost("GameResult")]
         public async Task<ActionResult<GameResultResponseModel>> GetGameResult(GameResultRequestModel userResultRequestModel)
         {
+            var game = await _context.Games.FirstOrDefaultAsync(x => x.Datetimestarted == userResultRequestModel.DateTimeStarted && x.PlayerOne == userResultRequestModel.Username);
+
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            //try catch to get the rounds for the game
             try
             {
-                //make user incoming model is not null
-                if (userResultRequestModel.Username == null || userResultRequestModel.DateTimeStarted == DateTime.MinValue)
+                var output = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
+
+                var rounds = output.Select(r => new GameResultResponse_RoundModel
                 {
-                    return BadRequest("Please enter a username, datetime, and round limit");
-                }
+                    RoundNumber = r.Roundnumber,
+                    PlayerOneChoice = r.PlayerOneChoice,
+                    PlayerTwoChoice = r.PlayerTwoChoice,
+                    Winner = r.Winner
+                }).ToList();
 
-                var game = await _context.Games.FirstOrDefaultAsync(x => x.Datetimestarted == userResultRequestModel.DateTimeStarted && x.PlayerOne == userResultRequestModel.Username);
-
-                if (game == null)
+                //return the game result
+                return Ok(new GameResultResponseModel
                 {
-                    return NotFound();
-                }
+                    Winner = game.GameWinner,
+                    Rounds = rounds
+                });
 
-                if(game.GameWinner == null)
-                {
-                    return Ok("Error: Game has not been completed");
-                    
-                }
-
-                var addRounds = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
-                var winner = game.GameWinner;
-
-                var roundList = new List<GameResultResponse_RoundModel>();
-                //add addrounds to roundlist
-                foreach (var round in addRounds)
-                {
-                    roundList.Add(new GameResultResponse_RoundModel
-                    {
-                        PlayerOneChoice = round.PlayerOneChoice,
-                        PlayerTwoChoice = round.PlayerTwoChoice,
-                        Winner = round.Winner
-                    });
-                }
-
-
-                var gameResult = new GameResultResponseModel
-                {
-                    Rounds = roundList,
-                   
-                };
-
-                return Ok(gameResult);
             }
 
 
@@ -259,46 +245,7 @@ namespace RPS_Final_Version.Controllers
 
         }
 
-        //create an endpoint to ge the winner of the game
-        [HttpPost("GameWinner")]
-        public ActionResult<GameWinnerResponseModel> GetGameWinner(GameWinnerRequestModel gameWinnerRequestModel)
-        {
 
-
-            try
-            {
-                
-                var output = getWinner(gameWinnerRequestModel.DateTimeStarted, gameWinnerRequestModel.Username);
-
-                //create a new game winner response model
-                var gameWinnerResponseModel = new GameWinnerResponseModel
-                {
-                    GameWinner = output
-                };  
-
-                return Ok(gameWinnerResponseModel);
-                
-
-        
-        
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
-            }
-
-
-            
-        }
-
-        //create an endpoint to get all the games that a player has played
-        [HttpGet("PlayerGames")]
-        public List<Game> GetGames(){
-                    
-                var playerGames = _context.Games.Where(g => g.PlayerOne == "Zack").ToList();
-    
-                return playerGames;
-        }
 
         public static string getWinner(DateTime dateTime, string username)
         {
@@ -307,20 +254,20 @@ namespace RPS_Final_Version.Controllers
                 var game = context.Games.FirstOrDefault(g => g.Datetimestarted == dateTime && g.PlayerOne == username);
                 if (game == null)
                 {
-                    return("Game does not exist");
+                    return ("Game does not exist");
                 }
 
                 var round = context.Rounds.FirstOrDefault(r => r.Gameid == game.Gameid);
                 if (round == null)
                 {
-                    return("Round does not exist");
+                    return ("Round does not exist");
                 }
 
                 var winner = round.Winner;
 
                 return winner;
             }
-            
+
         }
 
     }
