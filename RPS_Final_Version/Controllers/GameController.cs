@@ -67,6 +67,14 @@ namespace RPS_Final_Version.Controllers
                     };
                     _context.Games.Add(newGame);
                     _context.SaveChanges();
+
+                    //push newGame into the gameCheck response model
+
+                    return Ok(new GameCheckResponseModel
+                    {
+                        GameCode = newGame.Gamecode
+                    });
+
                 }
                 else if (gameSetup.Gameid >= 1)
                 {
@@ -80,28 +88,22 @@ namespace RPS_Final_Version.Controllers
                         PlayerOne = beginGame.Username,
                         PlayerTwo = "The AI Bot"
                     };
+
+
                     _context.Games.Add(newGame);
                     _context.SaveChanges();
+
+                    //return the game
+                    return Ok(new GameCheckResponseModel
+                    {
+                        GameCode = newGame.Gamecode
+                    });
 
                 }
                 else
                 {
                     return BadRequest("Game already exists");
                 }
-
-                //get the game code to be used in the next step
-                var gameCode = _context.Games.FirstOrDefault(g => g.Gameid == 1);
-
-
-                //if save changes succesful then return the gamecheck response model
-                return Ok(new GameCheckResponseModel
-                {
-                    Username = beginGame.Username,
-
-                    roundLimit = beginGame.roundLimit,
-                    DateTimeStarted = beginGame.DateTimeStarted,
-                    roundCounter = beginGame.roundCounter
-                });
 
             }
             catch (Exception ex)
@@ -122,8 +124,8 @@ namespace RPS_Final_Version.Controllers
             {
                 return BadRequest("Please enter a username and/or datetime");
             }
-            
-        
+
+
             //get gameCode from the database using the username and datetime
             var game = _context.Games.FirstOrDefault(g => g.PlayerOne == requestModel.Username && g.Datetimestarted == requestModel.DateTimeStarted);
 
@@ -206,8 +208,16 @@ namespace RPS_Final_Version.Controllers
         //create a post method that will calulate the winner of the game and update the game table
         // POST api/Game/CalculateWinner
         [HttpPost("CalculateWinner")]
-        public async Task<ActionResult<GameWinnerResponseModel>> CalculateWinner([FromBody] string gameCode)
+        public async Task<ActionResult<GameWinnerResponseModel>> CalculateWinner(GameWinnerRequestModel gameCode)
         {
+            var finalWinner = "";
+            var roundLimit = 0;
+            var roundNumber = 0;
+
+            var output = gameCode.gameCode;
+
+            calcWinner calcWinner = new calcWinner();
+
             //make sire the gamecode is not null
             if (gameCode == null)
             {
@@ -217,39 +227,48 @@ namespace RPS_Final_Version.Controllers
             {
                 //get the game from the database
 
-                var game = await _context.Games.FirstOrDefaultAsync(g => g.Gamecode == gameCode);
+                var game = await _context.Games.FirstOrDefaultAsync(g => g.Gamecode == gameCode.gameCode);  
 
                 if (game == null)
                 {
                     return BadRequest("Game does not exist");
                 }
 
-                calcWinner calcWinner = new calcWinner();
-
                 //get the round limit from the game 
-                var roundLimit = game.Roundlimit;
-                //get the roundnumber from the game
-                var roundNumber = game.Rounds.Max(r => r.Roundnumber);
+                roundLimit = game.Roundlimit;
+                // get all the rounds from the game 
+                var rounds = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
 
-                if (roundNumber == 0 || roundNumber < roundLimit)
+                //get the round number from rounds
+                roundNumber = rounds.Count();
+
+                
+
+                if (roundNumber == roundLimit)
                 {
-                    return BadRequest("Game has not started");
-                }
 
-                else if (roundNumber == roundLimit)
-                {
-                    var passTheRoundInfo = await _context.Rounds.Where(r => r.Gameid == game.Gameid).ToListAsync();
+                    //create a new using dbcontext
+                    using (var db = new rock_paper_scissorsContext())
+                    {
+                        //get the game from the database
+                        var gameToUpdate = await db.Rounds.Where(r => r.Gameid == game.Gameid).ToListAsync();
 
-                    var gameWinner = calcWinner.CalulateGameWinner(passTheRoundInfo);
+                        //get the winner from the game
+                        var winner = calcWinner.CalculateGameWinner(gameToUpdate);
 
-                    //update the game table with the winner
-                    game.GameWinner = gameWinner;
-                    game.Datetimeended = DateTime.Now;
-                    await _context.SaveChangesAsync();
+                        //update the game with the winner
+                        finalWinner = winner;
+
+                        //update the game table with the winner
+                        game.GameWinner = finalWinner;
+                        game.Datetimeended = DateTime.Now;
+                        await _context.SaveChangesAsync();
+
+                    }
 
                     return Ok(new GameWinnerResponseModel
                     {
-                        GameWinner = gameWinner
+                        GameWinner = finalWinner
                     });
 
                 }
@@ -257,9 +276,6 @@ namespace RPS_Final_Version.Controllers
                 {
                     return BadRequest("Game has not ended");
                 }
-
-
-
 
             }
             catch (Exception ex)
@@ -271,52 +287,64 @@ namespace RPS_Final_Version.Controllers
 
 
         //GET api/Game/GameResult/{gamecode}
-        [HttpGet("GameResult")]
-        public ActionResult<GameWinnerResponseModel> GetGameWinner([FromQuery]string gamecode)
+        [HttpPost("GameResult")]
+        public async Task<ActionResult<GameResultResponseModel>> GetGameWinner(GameWinnerRequestModel gamecode)
         {
+
             //make sure the gamecode is not null
             if (gamecode == null)
             {
                 return BadRequest("Please enter a gamecode");
             }
 
-            //get the game from the database using the gamecode
-            var game = _context.Games.FirstOrDefault(g => g.Gamecode == gamecode);
-
-            //if the game is null then return bad request
-            if (game == null)
-            {
-                return BadRequest("Game does not exist");
-            }
-
-            //try catch to get the rounds for the game
             try
             {
-                var output = _context.Rounds.Where(r => r.Gameid == game.Gameid).ToList();
-
-                var rounds = output.Select(r => new GameResultResponse_RoundModel
+                // create new dbcontext to get the game
+                using (var db = new rock_paper_scissorsContext())
                 {
-                    RoundNumber = r.Roundnumber,
-                    PlayerOneChoice = r.PlayerOneChoice,
-                    PlayerTwoChoice = r.PlayerTwoChoice,
-                    Winner = r.Winner
-                }).ToList();
+                    //get the game from the database using the gamecode
+                    var games = await _context.Games.FirstOrDefaultAsync(g => g.Gamecode == gamecode.gameCode);
 
-                //return the game result
-                return Ok(new GameResultResponseModel
-                {
-                    Winner = game.GameWinner,
-                    Rounds = rounds
-                });
+                    //if the game is null then return bad request
+                    if (games == null)
+                    {
+                        return BadRequest("Game does not exist");
+                    }
 
+                    var findRounds = await _context.Rounds.Where(r => r.Gameid == games.Gameid).ToListAsync();
+
+
+                    if (findRounds == null)
+                    {
+                        return BadRequest("Game Winner has not been found");
+                    }
+
+                    //create a new list to store the rounds
+                    var roundList = new List<GameResultResponse_RoundModel>();
+
+                    //add finalrounds to roundlist
+                    foreach (var round in findRounds)
+                    {
+                        roundList.Add(new GameResultResponse_RoundModel
+                        {
+                            RoundNumber = round.Roundnumber,
+                            PlayerOneChoice = round.PlayerOneChoice,
+                            PlayerTwoChoice = round.PlayerTwoChoice,
+                            Winner = round.Winner
+                        });
+                    }
+
+                    
+                    //return the game result
+                    return Ok(roundList);
+
+
+                }
             }
-
-
             catch (Exception ex)
             {
                 return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
             }
-
 
         }
 

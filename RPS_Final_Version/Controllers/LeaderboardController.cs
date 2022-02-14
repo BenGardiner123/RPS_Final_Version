@@ -80,10 +80,10 @@ namespace RPS_Final_Version.Controllers
             foreach(var game in gameCount){
                 leaderboard_player.Username = game.Username;
                 leaderboard_player.GamesPlayed = game.Count;
-                leaderboard_player.GamesWon = gameWon.Find(x => x.Username == game.Username).Count;
-                leaderboard_player.GamesLost = gameLost.Find(x => x.Username == game.Username).Count;
-                leaderboard_player.GamesTied = gameTied.Find(x => x.Username == game.Username).Count;
-                leaderboard_player.WinPercentage = (double)gameWon.Find(x => x.Username == game.Username).Count / (double)game.Count;
+                leaderboard_player.GamesWon = gameWon.Select(x => x.Username == game.Username).Count();
+                leaderboard_player.GamesLost = gameLost.Select(x => x.Username == game.Username).Count();
+                leaderboard_player.GamesTied = gameTied.Select(x => x.Username == game.Username).Count();
+                leaderboard_player.WinPercentage = (double)gameWon.Select(x => x.Username == game.Username).Count() / (double)game.Count;
                 leaderboard_player.MostUsedChoice = (rockCount > scissorsCount && rockCount > paperCount) ? "Rock" :
                                     (scissorsCount > rockCount && scissorsCount > paperCount) ? "Scissors" : "Paper";
                 //add the leaderboard_player to the leaderboard

@@ -4,7 +4,7 @@ namespace RPS_Final_Version.ultities
 {
     public class calcWinner
     {
-        public string CalulateGameWinner(List<Round> roundList)
+        public string CalculateGameWinner(List<Round> roundList)
         {
             //create varibles for palyer one, player two and draw
             var playerOneWins = 0;
