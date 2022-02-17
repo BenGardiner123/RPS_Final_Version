@@ -1,14 +1,49 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using RPS_Final_Version.Models;
+using System.Text;
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
 
+ConfigurationManager configuration = builder.Configuration;
+
 builder.Services.AddDbContext<rock_paper_scissorsContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+
+   .AddJwtBearer(options =>
+   {
+       options.TokenValidationParameters = new TokenValidationParameters
+       {
+           ValidateIssuer = true,
+           ValidateAudience = true,
+           ValidateIssuerSigningKey = true,
+           ValidIssuer = configuration["JWT:ValidIssuer"],
+           ValidAudience = configuration["JWT:ValidAudience"],
+           IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Secret"]))
+       };
+
+       options.Events = new JwtBearerEvents
+       {
+           OnAuthenticationFailed = context =>
+           {
+               if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+               {
+                   context.Response.Headers.Add("Token-Expired", "true");
+               }
+               return Task.CompletedTask;
+           }
+       };
+   });
+
+
 
 builder.Services.AddCors(options =>
 {

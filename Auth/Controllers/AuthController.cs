@@ -49,11 +49,11 @@ namespace Auth.Controllers
                     authClaims.Add(new Claim(ClaimTypes.Role, userRole));
                 }
 
-                
+
 
                 var token = GetToken(authClaims);
 
-                
+
 
                 return Ok(new
                 {
@@ -66,9 +66,9 @@ namespace Auth.Controllers
             return Unauthorized();
         }
 
-        
 
-       
+
+
         [HttpPost]
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
@@ -82,13 +82,13 @@ namespace Auth.Controllers
                 Email = model.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
                 UserName = model.Username,
-                
+
             };
             //add role to user
-            
-            
+
+
             var result = await _userManager.CreateAsync(user, model.Password);
-            
+
             if (!result.Succeeded)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
 
@@ -129,6 +129,40 @@ namespace Auth.Controllers
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
         }
 
+
+        //create a post endpoint that validates a token
+        [HttpPost]
+        [Route("validate-token")]
+        [Authorize]
+        public async Task<IActionResult> ValidateToken([FromBody] TokenRequestModel model)
+        {
+           
+            var mySecurityKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_configuration["JWT:Secret"]));
+
+            var myIssuer = _configuration["JWT:ValidIssuer"];
+            var myAudience = _configuration["JWT:ValidAudience"];
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            try
+            {
+                tokenHandler.ValidateToken(model.Token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidIssuer = myIssuer,
+                    ValidAudience = myAudience,
+                    
+                    IssuerSigningKey = mySecurityKey
+                }, out SecurityToken validatedToken);
+            }
+            catch
+            {
+                return Unauthorized();
+            }
+            return Ok();
+        }
+
         private JwtSecurityToken GetToken(List<Claim> authClaims)
         {
             var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
@@ -144,6 +178,7 @@ namespace Auth.Controllers
             return token;
         }
     }
+
 }
-    
+
 
