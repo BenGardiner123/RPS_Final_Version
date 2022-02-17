@@ -129,6 +129,15 @@ namespace RPS_Final_Version.Controllers
             //get gameCode from the database using the username and datetime
             var game = _context.Games.FirstOrDefault(g => g.PlayerOne == requestModel.Username && g.Datetimestarted == requestModel.DateTimeStarted);
 
+            if (game == null)
+            {
+                //wait 2 seconds and try again
+                Task.Delay(2000);
+                //get gameCode from the database using the username and datetime
+                var game2 = _context.Games.FirstOrDefault(g => g.PlayerOne == requestModel.Username && g.Datetimestarted == requestModel.DateTimeStarted);
+
+            }
+
             //if the game is null then return bad request
             if (game == null)
             {
@@ -158,51 +167,118 @@ namespace RPS_Final_Version.Controllers
                 return BadRequest("Please enter a username, datetime, and round limit");
             }
 
-            try
+            //check if the player and game exist
+            var player = _context.Players.FirstOrDefault(p => p.Username == beginGame.Username);
+            if (player == null)
             {
+                return BadRequest("Player does not exist");
+            }
+
+            var game = _context.Games.FirstOrDefault(g => g.Datetimestarted == beginGame.DateTimeStarted && g.PlayerOne == beginGame.Username);
+            if (game == null)
+            {
+                //wait 1 second and try again
+                Task.Delay(1000);
                 //check if the player and game exist
-                var player = _context.Players.FirstOrDefault(p => p.Username == beginGame.Username);
-                if (player == null)
+                var gameRetry = _context.Games.FirstOrDefault(g => g.Datetimestarted == beginGame.DateTimeStarted && g.PlayerOne == beginGame.Username);
+
+
+                //if the game is null then return bad request
+                if (gameRetry == null)
                 {
-                    return BadRequest("Player does not exist");
+                    return BadRequest("Game does not exist after retry ");
+                }
+                else if (gameRetry != null)
+                {
+                    try
+                    {
+                        //check if the player and game exist
+                        player = _context.Players.FirstOrDefault(p => p.Username == beginGame.Username);
+                        if (player == null)
+                        {
+                            return BadRequest("Player does not exist");
+                        }
+
+                        var createAiChoice = aiSelection.AiChoice();
+                        var whoWonThisRound = aiSelection.CalculateRoundWinner(beginGame.PlayerChoice, createAiChoice);
+
+                        //create a new round for the game and update it
+                        var round = new Round
+                        {
+                            Gameid = gameRetry.Gameid,
+                            Roundnumber = beginGame.roundCounter,
+                            PlayerOneChoice = beginGame.PlayerChoice,
+                            PlayerTwoChoice = createAiChoice,
+                            Winner = whoWonThisRound
+                        };
+
+                        //add the round to the database
+                        _context.Rounds.Add(round);
+                        _context.SaveChanges();
+
+                        //we still want to return the round winner and then another endpoint will take care of the rest
+                        return Ok(new GameSelectionResponseModel
+                        {
+                            PlayerTwoChoice = round.PlayerTwoChoice,
+                            outcome = round.Winner
+                        });
+
+                    }
+                    catch (Exception ex)
+                    {
+                        return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+                    }
+
                 }
 
-
-                var game = _context.Games.FirstOrDefault(g => g.Datetimestarted == beginGame.DateTimeStarted && g.PlayerOne == beginGame.Username);
-                if (game == null)
-                {
-                    return BadRequest("Game does not exist");
-                }
-
-                var createAiChoice = aiSelection.AiChoice();
-                var whoWonThisRound = aiSelection.CalculateRoundWinner(beginGame.PlayerChoice, createAiChoice);
-
-                //create a new round for the game and update it
-                var round = new Round
-                {
-                    Gameid = game.Gameid,
-                    Roundnumber = beginGame.roundCounter,
-                    PlayerOneChoice = beginGame.PlayerChoice,
-                    PlayerTwoChoice = createAiChoice,
-                    Winner = whoWonThisRound
-                };
-
-                //add the round to the database
-                _context.Rounds.Add(round);
-                _context.SaveChanges();
-
-                //we still want to return the round winner and then another endpoint will take care of the rest
-                return Ok(new GameSelectionResponseModel
-                {
-                    PlayerTwoChoice = round.PlayerTwoChoice,
-                    outcome = round.Winner
-                });
 
             }
-            catch (Exception ex)
+            else
             {
-                return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+                try
+                {
+                    //check if the player and game exist
+                    player = _context.Players.FirstOrDefault(p => p.Username == beginGame.Username);
+                    if (player == null)
+                    {
+                        return BadRequest("Player does not exist");
+                    }
+
+                    var createAiChoice = aiSelection.AiChoice();
+                    var whoWonThisRound = aiSelection.CalculateRoundWinner(beginGame.PlayerChoice, createAiChoice);
+
+                    //create a new round for the game and update it
+                    var round = new Round
+                    {
+                        Gameid = game.Gameid,
+                        Roundnumber = beginGame.roundCounter,
+                        PlayerOneChoice = beginGame.PlayerChoice,
+                        PlayerTwoChoice = createAiChoice,
+                        Winner = whoWonThisRound
+                    };
+
+                    //add the round to the database
+                    _context.Rounds.Add(round);
+                    _context.SaveChanges();
+
+                    //we still want to return the round winner and then another endpoint will take care of the rest
+                    return Ok(new GameSelectionResponseModel
+                    {
+                        PlayerTwoChoice = round.PlayerTwoChoice,
+                        outcome = round.Winner
+                    });
+
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest($"{BadRequest().StatusCode} : {ex.Message}");
+                }
+
             }
+            
+
+            return BadRequest("Something went wrong");
+
         }
 
         //create a post method that will calulate the winner of the game and update the game table
@@ -227,7 +303,7 @@ namespace RPS_Final_Version.Controllers
             {
                 //get the game from the database
 
-                var game = await _context.Games.FirstOrDefaultAsync(g => g.Gamecode == gameCode.gameCode);  
+                var game = await _context.Games.FirstOrDefaultAsync(g => g.Gamecode == gameCode.gameCode);
 
                 if (game == null)
                 {
@@ -242,7 +318,7 @@ namespace RPS_Final_Version.Controllers
                 //get the round number from rounds
                 roundNumber = rounds.Count();
 
-                
+
 
                 if (roundNumber == roundLimit)
                 {
@@ -334,7 +410,7 @@ namespace RPS_Final_Version.Controllers
                         });
                     }
 
-                    
+
                     //return the game result
                     return Ok(roundList);
 
