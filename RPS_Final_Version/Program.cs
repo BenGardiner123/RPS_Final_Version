@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using RPS_Final_Version.Models;
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
+
+ConfigurationManager configuration = builder.Configuration;
 
 builder.Services.AddDbContext<rock_paper_scissorsContext>(options =>
 {
@@ -16,8 +19,8 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(options =>
 {
-    options.Authority = Configuration["Authentication:Domain"];
-    options.Audience = Configuration["Authentication:Audience"];
+    options.Authority = builder.Configuration["Authentication:Domain"];
+    options.Audience = builder.Configuration["Authentication:Audience"];
 });
 
 builder.Services.AddCors(options =>
