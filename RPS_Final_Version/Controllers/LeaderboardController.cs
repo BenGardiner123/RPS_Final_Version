@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RPS_Final_Version.Models;
@@ -25,6 +26,7 @@ namespace RPS_Final_Version.Controllers
         }
 
         // GET: api/<Leaderboard>
+        [Authorize]
         [HttpGet("Leaderboard")]
         public ActionResult<LeaderboardViewModel> GetLeaderboard()
         {

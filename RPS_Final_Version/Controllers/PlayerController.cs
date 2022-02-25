@@ -42,7 +42,7 @@ namespace RPS_Final_Version.Controllers
 
         // post a new player to the database
         // POST api/<PlayerController>
-        [HttpPost]
+        [HttpPost("CreatePlayer")]
         public async Task<IActionResult> Post([FromBody] PlayerRegisterNameCheckRequestModel incomingPlayer)
         {
             //get platyers async
@@ -51,7 +51,7 @@ namespace RPS_Final_Version.Controllers
             //check if the player already exists
             if ( players.Any(p => p.Username == incomingPlayer.Username))
             {
-                return StatusCode(StatusCodes.Status409Conflict, new Response { Status="Error", Message = "Username already exists" });
+                return StatusCode(StatusCodes.Status200OK, new Response { Status="Ok", Message = "Username already exists" });
             }
 
             //create a new player and add the username
